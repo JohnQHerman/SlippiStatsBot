@@ -9,7 +9,7 @@ const token = process.env.DISCORD_TOKEN;
 // import dotenv and import token from .env file
 require('dotenv').config();
 
-// extend Discord.Client class to add commands property
+// extend Client class to add commands property
 class bruhClient extends Discord.Client {
     commands: Discord.Collection<string, any>;
     constructor(options: Discord.ClientOptions) {
@@ -29,8 +29,12 @@ const bot = new bruhClient({
 
 // read commands folder and add commands to client.commands collection
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter((file: string) => file.endsWith('.js'));
 
+const commandFiles = fs.readdirSync(commandsPath)
+    .filter((file: string) => file
+        .endsWith('.js'));
+
+// loop through command files
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
@@ -43,7 +47,7 @@ for (const file of commandFiles) {
     }
 }
 
-// on interaction, check if it is a command and execute it
+// handle commands
 bot.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
@@ -58,15 +62,24 @@ bot.on(Events.InteractionCreate, async interaction => {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        await interaction.reply({ content: 'Error executing command.', ephemeral: true });
+        await interaction.reply(
+            { content: 'Error executing command.', ephemeral: true }
+        );
     }
 });
 
 // on ready event
 bot.on(Events.ClientReady, () => {
     console.log('logged in as ' + bot.user?.tag);
-    console.log('commands: ' + bot.commands.size);
-    console.log('command names: ' + (bot.commands.size > 0 ? '\n' + bot.commands.map(command => command.data.name).join('\n') : 'none'));
+    console.log('commands: '
+        + bot.commands.size
+        + ' ('
+        + (bot.commands.size > 0 ?
+            bot.commands
+                .map(command => command.data.name)
+                .join(', ') : 'none')
+        + ')'
+    );
 
 });
 
