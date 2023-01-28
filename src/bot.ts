@@ -74,8 +74,7 @@ bot.on(Events.ClientReady, () => {
     console.log('commands: ' + bot.commands.size
         + ' (' + (bot.commands.size > 0 ? bot.commands
             .map(command => command.data.name)
-            .join(', ') : 'none') + ')'
-    );
+            .join(', ') : 'none') + ')');
 });
 
 // login to discord

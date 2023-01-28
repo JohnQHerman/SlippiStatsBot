@@ -41,6 +41,5 @@ for (const file of commandFiles) {
     console.log('commands: ' + commands.length
         + ' (' + (commands.length > 0 ? commands
             .map(command => command.name)
-            .join(', ') : 'none') + ')'
-    );
+            .join(', ') : 'none') + ')');
 })();
