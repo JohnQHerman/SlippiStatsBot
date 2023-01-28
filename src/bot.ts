@@ -1,13 +1,10 @@
 // import discord.js and node modules
 import Discord, { Collection, Events, GatewayIntentBits } from 'discord.js';
+require('dotenv').config();
 
 const fs = require('node:fs');
 const path = require('node:path');
-
 const token = process.env.DISCORD_TOKEN;
-
-// import dotenv and import token from .env file
-require('dotenv').config();
 
 // extend Client class to add commands property
 class bruhClient extends Discord.Client {
