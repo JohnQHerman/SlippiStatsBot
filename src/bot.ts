@@ -1,4 +1,3 @@
-// import discord.js and node modules
 import Discord, { Collection, Events, GatewayIntentBits } from 'discord.js';
 require('dotenv').config();
 
