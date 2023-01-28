@@ -71,16 +71,11 @@ bot.on(Events.InteractionCreate, async interaction => {
 // on ready event
 bot.on(Events.ClientReady, () => {
     console.log('logged in as ' + bot.user?.tag);
-    console.log('commands: '
-        + bot.commands.size
-        + ' ('
-        + (bot.commands.size > 0 ?
-            bot.commands
-                .map(command => command.data.name)
-                .join(', ') : 'none')
-        + ')'
+    console.log('commands: ' + bot.commands.size
+        + ' (' + (bot.commands.size > 0 ? bot.commands
+            .map(command => command.data.name)
+            .join(', ') : 'none') + ')'
     );
-
 });
 
 // login to discord

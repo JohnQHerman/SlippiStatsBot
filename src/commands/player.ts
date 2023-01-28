@@ -3,13 +3,20 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("player")
-        .setDescription("Retrieves and displays statistics and information for a specified player")
+        .setDescription("Fetches player data for a given connect code")
         .addStringOption((option: any) =>
             option.setName("code")
-                .setDescription("The connect code of the desired player")
+                .setDescription("Slippi connect code of the desired player")
+                .setMinLength(3)
+                .setMaxLength(8)
                 .setRequired(true)),
 
-    async execute(interaction: { reply: (arg0: string) => any; }) {
-        await interaction.reply("this works");
+    async execute(interaction: {
+        options: any; reply: (arg0: string) => any;
+    }) {
+
+        const code = interaction.options.getString('code');
+        await interaction.reply("this works. code: " + code);
+
     },
 };

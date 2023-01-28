@@ -37,7 +37,10 @@ for (const file of commandFiles) {
     } catch (error) {
         console.error(error);
     }
-    console.log("commands: " + 
-        commands.map((command) => command.name).join(", ")
+
+    console.log('commands: ' + commands.length
+        + ' (' + (commands.length > 0 ? commands
+            .map(command => command.name)
+            .join(', ') : 'none') + ')'
     );
 })();
