@@ -1,4 +1,4 @@
-import Discord, { Collection, Events, GatewayIntentBits } from 'discord.js';
+import Discord, { ActivityType, Collection, Events, GatewayIntentBits } from 'discord.js';
 require('dotenv').config();
 
 const fs = require('node:fs');
@@ -25,7 +25,6 @@ const bot = new bruhClient({
 
 // read commands folder and add commands to client.commands collection
 const commandsPath = path.join(__dirname, 'commands');
-
 const commandFiles = fs.readdirSync(commandsPath)
     .filter((file: string) => file
         .endsWith('.js'));
@@ -43,16 +42,12 @@ for (const file of commandFiles) {
     }
 }
 
-// handle commands
+// handler for slash commands and buttons and stuff idk i havent gotten that far yet lol
 bot.on(Events.InteractionCreate, async interaction => {
+
     if (!interaction.isChatInputCommand()) return;
 
     const command = bot.commands.get(interaction.commandName);
-
-    if (!command) {
-        console.error(`No command matching ${interaction.commandName} was found.`);
-        return;
-    }
 
     try {
         await command.execute(interaction);
@@ -66,7 +61,17 @@ bot.on(Events.InteractionCreate, async interaction => {
 
 // on ready event
 bot.on(Events.ClientReady, () => {
-    console.log('logged in as ' + bot.user?.tag);
+
+    // log bot tag and id
+    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')');
+
+    // set bot status
+    bot.user?.setPresence({
+        activities: [{ name: 'Ranked Matchmaking', type: ActivityType.Competing }],
+        status: 'online'
+    });
+
+    // log commands
     console.log('commands: ' + bot.commands.size
         + ' (' + (bot.commands.size > 0 ? bot.commands
             .map(command => command.data.name)

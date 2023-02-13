@@ -1,3 +1,6 @@
-node_modules/
 .env
+*.json
+*.log
 dist/**/*.js
+firestore.rules
+node_modules/

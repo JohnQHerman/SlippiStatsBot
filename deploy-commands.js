@@ -2,20 +2,19 @@ const { REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 require('dotenv').config();
 
-// env variables
-const token = process.env.DISCORD_TOKEN;
-const clientId = process.env.CLIENT_ID;
-const guildId = process.env.GUILD_ID;
-
 // array to hold commands
 const commands = [];
 
-// grab command files from ./dist/commands
-const commandFiles = fs.readdirSync('./dist/commands').filter((file) => file.endsWith('.js'));
+// grab command files
+const commandsPath = 'dist/src/commands';
 
-// grab the SlashCommandBuilder#toJSON() output of each command's data
+const commandFiles = fs.readdirSync(commandsPath)
+    .filter((file) => file
+        .endsWith('.js'));
+
+// grab SlashCommandBuilder#toJSON() output of each command
 for (const file of commandFiles) {
-    const command = require(`./dist/commands/${file}`);
+    const command = require(`./${commandsPath}/${file}`);
     commands.push(command.data.toJSON());
 }
 
@@ -26,9 +25,9 @@ for (const file of commandFiles) {
 
         // use REST API to register commands with discord
         const data = await new REST({ version: '10' })
-            .setToken(token)
+            .setToken(process.env.DISCORD_TOKEN)
             .put(
-                Routes.applicationGuildCommands(clientId, guildId),
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
                 { body: commands },
             );
 
