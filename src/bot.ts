@@ -1,9 +1,8 @@
 import Discord, { ActivityType, Collection, Events, GatewayIntentBits } from 'discord.js';
-require('dotenv').config();
+import fs from 'node:fs';
+import path from 'node:path';
 
-const fs = require('node:fs');
-const path = require('node:path');
-const token = process.env.DISCORD_TOKEN;
+require('dotenv').config();
 
 // extend Client class to add commands property
 class bruhClient extends Discord.Client {
@@ -15,7 +14,7 @@ class bruhClient extends Discord.Client {
 }
 
 // new extended client instance
-const bot = new bruhClient({
+const bot: bruhClient = new bruhClient({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
@@ -24,15 +23,15 @@ const bot = new bruhClient({
 });
 
 // read commands folder and add commands to client.commands collection
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath)
+const commandsPath: string = path.join(__dirname, 'commands');
+const commandFiles: string[] = fs.readdirSync(commandsPath)
     .filter((file: string) => file
         .endsWith('.js'));
 
 // loop through command files
 for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
+    const filePath: string = path.join(commandsPath, file);
+    const command: any = require(filePath);
 
     // set command to client.commands collection if it has data and execute properties
     if ('data' in command && 'execute' in command) {
@@ -47,7 +46,7 @@ bot.on(Events.InteractionCreate, async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
 
-    const command = bot.commands.get(interaction.commandName);
+    const command: any = bot.commands.get(interaction.commandName);
 
     try {
         await command.execute(interaction);
@@ -71,13 +70,13 @@ bot.on(Events.ClientReady, () => {
         status: 'online'
     });
 
-    // log commands
+    // log commands (reverse sorted)
     console.log('commands: ' + bot.commands.size
         + ' (' + (bot.commands.size > 0 ? bot.commands
-            .map(command => command.data.name)
-            .join(', ') : 'none') + ')');
+            .map((command: any) => command.data.name)
+            .sort((a: string, b: string) => b.localeCompare(a))
+            .join(', ') : 'none') + ') \n');
 });
 
 // login to discord
-bot.login(token);
-
+bot.login(process.env.DISCORD_TOKEN);

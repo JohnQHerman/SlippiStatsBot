@@ -1,17 +1,17 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder, SlashCommandStringOption } from '@discordjs/builders';
 
 import * as admin from "firebase-admin";
 import * as firebase from "firebase/app";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import { FirebaseStorage, getDownloadURL, getStorage, ref, StorageReference, uploadBytes } from "firebase/storage";
 
-import { Builder, By } from 'selenium-webdriver';
+const serviceAccount = require("../../service_account.json") as admin.ServiceAccount;
+
+import { Builder, By, ThenableWebDriver, WebElement } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/chrome';
 
 require('dotenv').config();
 
 // init firebase admin sdk
-const serviceAccount = require("../../../slippi-stats-firebase-adminsdk-i04uq-4d22067541.json");
-
 const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -24,11 +24,11 @@ const firebaseConfig = {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
-const app = firebase.initializeApp(firebaseConfig);
-const storage = getStorage(app);
+const app: firebase.FirebaseApp = firebase.initializeApp(firebaseConfig);
+const storage: FirebaseStorage = getStorage(app);
 
 // headless chrome instance
-const driver = new Builder()
+const driver: ThenableWebDriver = new Builder()
     .forBrowser('chrome')
     .setChromeOptions(new Options().addArguments('--headless'))
     .build();
@@ -38,7 +38,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName("player")
         .setDescription("Fetches player data for a given connect code")
-        .addStringOption((option: any) =>
+        .addStringOption((option: SlashCommandStringOption) =>
             option.setName("code")
                 .setDescription("slippi connect code")
                 .setMinLength(3)
@@ -47,11 +47,13 @@ module.exports = {
 
     // handle slash command
     async execute(interaction: {
-        options: any; reply: (arg0: string) => any;
+        user: { username: string; };
+        options: { getString: (arg0: string) => string; };
+        reply: (arg0: string) => Promise<void>;
     }) {
 
         // validate connect code (contains # followed by digits)
-        const connectCode = interaction.options.getString('code');
+        const connectCode: string = interaction.options.getString('code');
 
         if (!connectCode.includes('#') ||
             !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
@@ -59,17 +61,9 @@ module.exports = {
         }
 
         // fetch player data
-        const user = connectCode.toLowerCase().replace('#', '-');
+        let user: string = connectCode.toLowerCase().replace('#', '-');
         driver.get(`https://slippi.gg/user/${user}`);
-
-        // wait for page to load ("Loading" text to disappear)
-        await driver.wait(() => {
-            return driver.findElement(By.xpath('//div[@role="main"]'))
-                .getText()
-                .then((text) => {
-                    return text !== 'Loading';
-                });
-        }, 10000);
+        await driver.sleep(1000);
 
         // make sure player exists
         let pageSource: string;
@@ -81,7 +75,7 @@ module.exports = {
         }
 
         if (pageSource.includes("Player not found")) {
-            console.log('player ' + connectCode.toUpperCase() + ' not found');
+            console.log('player ' + connectCode.toUpperCase() + ' not found (searched by ' + interaction.user.username + ')');
             return interaction.reply("Player **" + connectCode.toUpperCase() + "** not found.");
         }
 
@@ -90,19 +84,19 @@ module.exports = {
         driver.executeScript('document.body.style.zoom="86%"');
 
         // take screenshot and upload to firestore database
-        const element = driver.findElement(
+        const element: WebElement = await driver.findElement(
             By.xpath('//div[@role="main"]'));
 
-        let screenshot = await element.takeScreenshot();
-        let buffer = Buffer.from(screenshot, 'base64');
+        let screenshot: string = await element.takeScreenshot(true);
+        let buffer: Buffer = Buffer.from(screenshot, 'base64');
 
-        const storageRef = ref(storage, `${user}.png`);
+        const storageRef: StorageReference = ref(storage, `${user}.png`);
         await uploadBytes(storageRef, buffer).then((snapshot) => {
             console.log('uploaded file: ' + snapshot.metadata.fullPath);
         });
 
         // get download url
-        const imageUrl = await getDownloadURL(storageRef);
+        const imageUrl: string = await getDownloadURL(storageRef);
 
         // send image
         return interaction.reply(imageUrl);

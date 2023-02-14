@@ -6,7 +6,7 @@ require('dotenv').config();
 const commands = [];
 
 // grab command files
-const commandsPath = 'dist/src/commands';
+const commandsPath = 'dist/commands';
 
 const commandFiles = fs.readdirSync(commandsPath)
     .filter((file) => file
@@ -40,5 +40,6 @@ for (const file of commandFiles) {
     console.log('commands: ' + commands.length
         + ' (' + (commands.length > 0 ? commands
             .map(command => command.name)
+            .sort((a, b) => b.localeCompare(a))
             .join(', ') : 'none') + ')');
 })();
