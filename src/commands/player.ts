@@ -1,17 +1,16 @@
-import { SlashCommandBuilder, SlashCommandStringOption } from '@discordjs/builders';
+import { EmbedBuilder, SlashCommandBuilder, SlashCommandStringOption } from '@discordjs/builders';
 
 import * as admin from "firebase-admin";
 import * as firebase from "firebase/app";
 import { FirebaseStorage, getDownloadURL, getStorage, ref, StorageReference, uploadBytes } from "firebase/storage";
 
-const serviceAccount = require("../../service_account.json") as admin.ServiceAccount;
-
 import { Builder, By, ThenableWebDriver, WebElement } from 'selenium-webdriver';
-import { Options } from 'selenium-webdriver/chrome';
 
 require('dotenv').config();
 
 // init firebase admin sdk
+const serviceAccount = require("../../service_account.json");
+
 const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -24,16 +23,15 @@ const firebaseConfig = {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
-const app: firebase.FirebaseApp = firebase.initializeApp(firebaseConfig);
-const storage: FirebaseStorage = getStorage(app);
+const storage: FirebaseStorage = getStorage(firebase
+    .initializeApp(firebaseConfig));
 
-// headless chrome instance
+// init selenium webdriver
 const driver: ThenableWebDriver = new Builder()
     .forBrowser('chrome')
-    .setChromeOptions(new Options().addArguments('--headless'))
     .build();
 
-// build slash command
+// export command
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("player")
@@ -45,60 +43,82 @@ module.exports = {
                 .setMaxLength(8) // 3-8 characters
                 .setRequired(true)),
 
-    // handle slash command
+    // execute command
     async execute(interaction: {
+        deferReply: () => Promise<void>;
+        editReply(arg0: { embeds: EmbedBuilder[]; ephemeral?: boolean | undefined; }): Promise<void>;
         user: { username: string; };
         options: { getString: (arg0: string) => string; };
-        reply: (arg0: string) => Promise<void>;
+        reply: (arg0: any) => Promise<void>;
     }) {
 
-        // validate connect code (contains # followed by digits)
-        const connectCode: string = interaction.options.getString('code');
+        // defer reply to avoid timeout
+        await interaction.deferReply();
+
+        // validate connect code (contains '#' followed by only digits)
+        let connectCode: string = interaction.options.getString('code');
 
         if (!connectCode.includes('#') ||
             !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
-            return interaction.reply("Invalid connect code.");
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setDescription("Invalid connect code.")]
+            });
         }
 
         // fetch player data
-        let user: string = connectCode.toLowerCase().replace('#', '-');
-        driver.get(`https://slippi.gg/user/${user}`);
-        await driver.sleep(1000);
+        let user: string;
+
+        try {
+            user = connectCode.toLowerCase().replace('#', '-');
+            await driver.get(`https://slippi.gg/user/${user}`);
+        } catch (error: any) {
+            console.log(error);
+            return;
+        }
+
+        await driver.sleep(1500); // wait for page to load
 
         // make sure player exists
         let pageSource: string;
+
         try {
             pageSource = await driver.getPageSource();
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
             return;
         }
 
         if (pageSource.includes("Player not found")) {
-            console.log('player ' + connectCode.toUpperCase() + ' not found (searched by ' + interaction.user.username + ')');
-            return interaction.reply("Player **" + connectCode.toUpperCase() + "** not found.");
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setDescription("Player **" + connectCode.toUpperCase() + "** not found.")]
+            });
         }
 
-        // set window size and zoom to fit stats
-        driver.manage().window().setSize(1049, 667);
-        driver.executeScript('document.body.style.zoom="86%"');
-
-        // take screenshot and upload to firestore database
+        // take screenshot and upload to firebase storage
         const element: WebElement = await driver.findElement(
             By.xpath('//div[@role="main"]'));
 
-        let screenshot: string = await element.takeScreenshot(true);
+        let screenshot: string = await element.takeScreenshot();
         let buffer: Buffer = Buffer.from(screenshot, 'base64');
 
-        const storageRef: StorageReference = ref(storage, `${user}.png`);
+        const storageRef: StorageReference = ref(storage, `players/${user}.png`);
         await uploadBytes(storageRef, buffer).then((snapshot) => {
-            console.log('uploaded file: ' + snapshot.metadata.fullPath);
+            console.log(interaction.user.username + ' uploaded ' +
+                snapshot.metadata.fullPath + ' (' +
+                snapshot.metadata.size + ' bytes)');
         });
 
-        // get download url
-        const imageUrl: string = await getDownloadURL(storageRef);
+        let imageUrl: string = await getDownloadURL(storageRef);
 
-        // send image
-        return interaction.reply(imageUrl);
+        // edit deferred reply with player data
+        await interaction.editReply({
+            embeds: [new EmbedBuilder()
+                .setColor(0x30912E)
+                .setImage(imageUrl)]
+        });
     },
 };
