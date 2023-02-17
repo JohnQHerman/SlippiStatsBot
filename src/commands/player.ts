@@ -47,9 +47,7 @@ module.exports = {
     async execute(interaction: {
         deferReply: () => Promise<void>;
         editReply(arg0: { embeds: EmbedBuilder[]; ephemeral?: boolean | undefined; }): Promise<void>;
-        user: {
-            username: string; discriminator: number;
-        };
+        user: { username: string; discriminator: number; };
         options: { getString: (arg0: string) => string; };
         reply: (arg0: any) => Promise<void>;
     }) {
