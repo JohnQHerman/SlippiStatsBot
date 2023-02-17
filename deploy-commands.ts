@@ -31,7 +31,7 @@ for (const file of commandFiles) {
                 { body: commands },
             );
 
-        console.log(`reloaded ${data.length} slash commands (${commands.length > 0 ? commands
+        console.log(`refreshed ${data.length} slash commands (${commands.length > 0 ? commands
             .map((command: any) => command.name)
             .sort((a: string, b: string) => b.localeCompare(a))
             .join(', ') : 'none'})`);

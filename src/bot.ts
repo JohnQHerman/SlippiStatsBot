@@ -1,3 +1,4 @@
+import { EmbedBuilder } from '@discordjs/builders';
 import Discord, { ActivityType, Collection, Events, GatewayIntentBits } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -41,7 +42,7 @@ for (const file of commandFiles) {
     }
 }
 
-// handler for slash commands and buttons and stuff idk i havent gotten that far yet lol
+// handler for slash commands/interactions
 bot.on(Events.InteractionCreate, async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
@@ -52,17 +53,19 @@ bot.on(Events.InteractionCreate, async interaction => {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        await interaction.reply(
-            { content: 'Error executing command.', ephemeral: true }
-        );
+        await interaction.reply({
+            embeds: [new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setDescription('Error executing command.')], ephemeral: true
+        });
     }
 });
 
 // on ready event
 bot.on(Events.ClientReady, () => {
 
-    // log bot tag and id
-    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')');
+    // log tag and id
+    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')\n');
 
     // set bot status
     bot.user?.setPresence({
@@ -70,12 +73,6 @@ bot.on(Events.ClientReady, () => {
         status: 'online'
     });
 
-    // log commands (reverse sorted)
-    console.log('commands: ' + bot.commands.size
-        + ' (' + (bot.commands.size > 0 ? bot.commands
-            .map((command: any) => command.data.name)
-            .sort((a: string, b: string) => b.localeCompare(a))
-            .join(', ') : 'none') + ') \n');
 });
 
 // login to discord

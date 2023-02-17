@@ -35,10 +35,10 @@ const driver: ThenableWebDriver = new Builder()
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("player")
-        .setDescription("Fetches player data for a given connect code")
+        .setDescription("Fetches player data for a given connect code.")
         .addStringOption((option: SlashCommandStringOption) =>
             option.setName("code")
-                .setDescription("slippi connect code")
+                .setDescription("Slippi connect code")
                 .setMinLength(3)
                 .setMaxLength(8) // 3-8 characters
                 .setRequired(true)),
@@ -47,7 +47,9 @@ module.exports = {
     async execute(interaction: {
         deferReply: () => Promise<void>;
         editReply(arg0: { embeds: EmbedBuilder[]; ephemeral?: boolean | undefined; }): Promise<void>;
-        user: { username: string; };
+        user: {
+            username: string; discriminator: number;
+        };
         options: { getString: (arg0: string) => string; };
         reply: (arg0: any) => Promise<void>;
     }) {
@@ -67,7 +69,7 @@ module.exports = {
             });
         }
 
-        // fetch player data
+        // fetch player page
         let user: string;
 
         try {
@@ -78,18 +80,19 @@ module.exports = {
             return;
         }
 
-        await driver.sleep(1500); // wait for page to load
+        let pageSource: string = await driver.getPageSource();
 
-        // make sure player exists
-        let pageSource: string;
-
-        try {
-            pageSource = await driver.getPageSource();
-        } catch (error: any) {
-            console.log(error);
-            return;
+        // wait for page to load
+        while (pageSource.includes("Loading")) {
+            try {
+                pageSource = await driver.getPageSource();
+            } catch (error: any) {
+                console.log(error);
+                return;
+            }
         }
 
+        // make sure player exists
         if (pageSource.includes("Player not found")) {
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
@@ -98,7 +101,7 @@ module.exports = {
             });
         }
 
-        // take screenshot and upload to firebase storage
+        // take screenshot, upload to firebase storage, and get download url
         const element: WebElement = await driver.findElement(
             By.xpath('//div[@role="main"]'));
 
@@ -106,11 +109,26 @@ module.exports = {
         let buffer: Buffer = Buffer.from(screenshot, 'base64');
 
         const storageRef: StorageReference = ref(storage, `players/${user}.png`);
-        await uploadBytes(storageRef, buffer).then((snapshot) => {
-            console.log(interaction.user.username + ' uploaded ' +
-                snapshot.metadata.fullPath + ' (' +
-                snapshot.metadata.size + ' bytes)');
-        });
+
+        await uploadBytes(storageRef, buffer, { contentType: 'image/png' })
+            .then((snapshot) => {
+
+                let timestamp: string = new Date().toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+
+                console.log(timestamp + " | " + interaction.user.username +
+                    "#" + interaction.user.discriminator +
+                    ' | ' + snapshot.metadata.fullPath +
+                    ' | ' + (snapshot.metadata.size / 1024)
+                        .toFixed(2) + ' KB');
+            });
 
         let imageUrl: string = await getDownloadURL(storageRef);
 
