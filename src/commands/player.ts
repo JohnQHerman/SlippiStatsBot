@@ -90,7 +90,9 @@ module.exports = {
             }
         }
 
-        // make sure player exists
+        // wait a few seconds for page to load
+        await driver.sleep(2000);
+
         if (pageSource.includes("Player not found")) {
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
@@ -99,7 +101,7 @@ module.exports = {
             });
         }
 
-        // take screenshot, upload to firebase storage, and get download url
+        // take screenshot of player data
         const element: WebElement = await driver.findElement(
             By.xpath('//div[@role="main"]'));
 
@@ -108,10 +110,19 @@ module.exports = {
 
         const storageRef: StorageReference = ref(storage, `players/${user}.png`);
 
-        await uploadBytes(storageRef, buffer, { contentType: 'image/png' })
-            .then((snapshot) => {
+        let fileExists: boolean = true;
+        try {
+            await getDownloadURL(storageRef);
+        } catch (error: any) {
+            fileExists = false;
+        }
 
-                let timestamp: string = new Date().toLocaleString(undefined, {
+        await uploadBytes(storageRef, buffer, {
+            contentType: 'image/png',
+            cacheControl: 'public, max-age=21600'
+        }).then((snapshot) => {
+            console.log(
+                new Date().toLocaleString(undefined, {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
@@ -119,18 +130,16 @@ module.exports = {
                     minute: '2-digit',
                     second: '2-digit',
                     hour12: false
-                });
+                }) + " | " + interaction.user.username + "#" +
+                interaction.user.discriminator + ' | ' +
+                snapshot.metadata.fullPath + ' | ' +
+                (fileExists ? 'updated ' : 'uploaded ') +
+                (snapshot.metadata.size / 1024).toFixed(2) + ' KB'
+            );
+        })
 
-                console.log(timestamp + " | " + interaction.user.username +
-                    "#" + interaction.user.discriminator +
-                    ' | ' + snapshot.metadata.fullPath +
-                    ' | ' + (snapshot.metadata.size / 1024)
-                        .toFixed(2) + ' KB');
-            });
-
+        // edit deferred reply with player data embed
         let imageUrl: string = await getDownloadURL(storageRef);
-
-        // edit deferred reply with player data
         await interaction.editReply({
             embeds: [new EmbedBuilder()
                 .setColor(0x30912E)
