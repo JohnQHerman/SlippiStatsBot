@@ -41,12 +41,19 @@ module.exports = {
                 .setDescription("Slippi connect code")
                 .setMinLength(3)
                 .setMaxLength(8) // 3-8 characters
-                .setRequired(true)),
+                .setRequired(true))
+        .addBooleanOption((option) =>
+            option.setName("private")
+                .setDescription("Whether or not to hide stats from others")
+                .setRequired(false)),
 
     // execute command
     async execute(interaction: any) {
 
-        await interaction.deferReply();
+        const Private: boolean = interaction.options
+            .getBoolean('private') ?? false;
+
+        await interaction.deferReply({ ephemeral: Private });
 
         // validate connect code
         const connectCode: string = interaction.options.getString('code');
