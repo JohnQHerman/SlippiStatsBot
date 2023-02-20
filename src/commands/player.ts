@@ -1,10 +1,10 @@
-import { EmbedBuilder, SlashCommandBuilder, SlashCommandStringOption } from '@discordjs/builders';
+import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 
 import * as admin from "firebase-admin";
 import * as firebase from "firebase/app";
-import { FirebaseStorage, getDownloadURL, getStorage, ref, StorageReference, uploadBytes } from "firebase/storage";
+import { getDownloadURL, getStorage, ref, StorageReference, uploadBytes } from "firebase/storage";
 
-import { Builder, By, ThenableWebDriver, WebElement } from 'selenium-webdriver';
+import { Builder, By, WebElement } from 'selenium-webdriver';
 
 require('dotenv').config();
 
@@ -23,11 +23,11 @@ const firebaseConfig = {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
-const storage: FirebaseStorage = getStorage(firebase
-    .initializeApp(firebaseConfig));
+const storage = getStorage(
+    firebase.initializeApp(firebaseConfig));
 
 // init selenium webdriver
-const driver: ThenableWebDriver = new Builder()
+const driver = new Builder()
     .forBrowser('chrome')
     .build();
 
@@ -36,7 +36,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName("player")
         .setDescription("Fetches player data for a given connect code.")
-        .addStringOption((option: SlashCommandStringOption) =>
+        .addStringOption((option) =>
             option.setName("code")
                 .setDescription("Slippi connect code")
                 .setMinLength(3)
@@ -44,22 +44,14 @@ module.exports = {
                 .setRequired(true)),
 
     // execute command
-    async execute(interaction: {
-        deferReply: () => Promise<void>;
-        editReply(arg0: { embeds: EmbedBuilder[]; ephemeral?: boolean | undefined; }): Promise<void>;
-        user: { username: string; discriminator: number; };
-        options: { getString: (arg0: string) => string; };
-        reply: (arg0: any) => Promise<void>;
-    }) {
+    async execute(interaction: any) {
 
-        // defer reply to avoid timeout
         await interaction.deferReply();
 
-        // validate connect code (contains '#' followed by only digits)
-        let connectCode: string = interaction.options.getString('code');
-
-        if (!connectCode.includes('#') ||
-            !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
+        // validate connect code
+        const connectCode: string = interaction.options.getString('code');
+        if (!connectCode.includes('#')
+            || !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setColor(0xFF0000)
@@ -73,26 +65,30 @@ module.exports = {
         try {
             user = connectCode.toLowerCase().replace('#', '-');
             await driver.get(`https://slippi.gg/user/${user}`);
-        } catch (error: any) {
+        } catch (error) {
             console.log(error);
             return;
         }
 
-        let pageSource: string = await driver.getPageSource();
+        // wait for player data & images to load
+        let pageSource: string;
 
-        // wait for page to load
-        while (pageSource.includes("Loading")) {
-            try {
-                pageSource = await driver.getPageSource();
-            } catch (error: any) {
-                console.log(error);
-                return;
+        try {
+            pageSource = await driver.getPageSource();
+            while (!pageSource.includes(`src="/static/media/rank_`)) {
+                try {
+                    pageSource = await driver.getPageSource();
+                } catch (error) {
+                    console.log(error);
+                    return;
+                }
             }
+        } catch (error) {
+            console.log(error);
+            return;
         }
 
-        // wait a few seconds for page to load
-        await driver.sleep(2000);
-
+        // check if player exists
         if (pageSource.includes("Player not found")) {
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
@@ -105,18 +101,18 @@ module.exports = {
         const element: WebElement = await driver.findElement(
             By.xpath('//div[@role="main"]'));
 
-        let screenshot: string = await element.takeScreenshot();
-        let buffer: Buffer = Buffer.from(screenshot, 'base64');
-
+        const screenshot: string = await element.takeScreenshot();
+        const buffer: Buffer = Buffer.from(screenshot, 'base64');
         const storageRef: StorageReference = ref(storage, `players/${user}.png`);
 
         let fileExists: boolean = true;
         try {
             await getDownloadURL(storageRef);
-        } catch (error: any) {
+        } catch (error) {
             fileExists = false;
         }
 
+        // upload screenshot to firebase storage
         await uploadBytes(storageRef, buffer, {
             contentType: 'image/png',
             cacheControl: 'public, max-age=21600'
@@ -130,12 +126,10 @@ module.exports = {
                     minute: '2-digit',
                     second: '2-digit',
                     hour12: false
-                }) + " | " + interaction.user.username + "#" +
-                interaction.user.discriminator + ' | ' +
-                snapshot.metadata.fullPath + ' | ' +
-                (fileExists ? 'updated ' : 'uploaded ') +
-                (snapshot.metadata.size / 1024).toFixed(2) + ' KB'
-            );
+                }) + " | " + interaction.user.username + "#" + interaction.user.discriminator
+                + (fileExists ? ' replaced ' : ' uploaded ')
+                + (snapshot.metadata.size / 1024).toFixed(2) + " KB"
+                + (fileExists ? ' at ' : ' to ') + snapshot.metadata.fullPath);
         })
 
         // edit deferred reply with player data embed
