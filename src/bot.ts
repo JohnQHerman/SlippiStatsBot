@@ -65,7 +65,7 @@ bot.on(Events.InteractionCreate, async interaction => {
 bot.on(Events.ClientReady, () => {
 
     // log tag and id
-    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')\n');
+    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')');
 
     // set bot status
     bot.user?.setPresence({
@@ -75,5 +75,5 @@ bot.on(Events.ClientReady, () => {
 
 });
 
-// login to discord
+// log in to discord
 bot.login(process.env.DISCORD_TOKEN);
