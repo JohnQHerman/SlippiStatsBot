@@ -36,7 +36,7 @@ for (const file of commandFiles) {
             .sort((a: string, b: string) => b.localeCompare(a))
             .join(', ') : 'none'})`);
 
-    } catch (error: any) {
+    } catch (error) {
         console.error(error);
     }
 })();
