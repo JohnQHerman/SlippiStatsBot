@@ -1,20 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { Builder, By, WebElement } from 'selenium-webdriver';
 
-require('dotenv').config();
-
-// init selenium webdriver
-const driver = new Builder()
-    .forBrowser('chrome')
-    .build();
-
-driver.manage()
-    .window()
-    .setRect({
-        width: 1249,
-        height: 1247
-    });
-
 // export command
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,7 +17,7 @@ module.exports = {
                 .setDescription("Hide stats from other users? | default: false")
                 .setRequired(false)),
 
-    // execute command
+    // command execution
     async execute(interaction: any) {
 
         const hideStats: boolean = interaction.options
@@ -50,6 +36,11 @@ module.exports = {
                     .setDescription("Invalid connect code.")]
             });
         }
+
+        // init selenium webdriver
+        const driver = new Builder()
+            .forBrowser('chrome')
+            .build();
 
         // fetch player page
         let user: string;
@@ -75,9 +66,9 @@ module.exports = {
         }
 
         // check if player exists
-        await driver.sleep(750);
-
+        await driver.sleep(1000);
         if (pageSource.includes("Player not found")) {
+            await driver.quit();
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setColor(0xFF0000)
@@ -86,12 +77,18 @@ module.exports = {
         }
 
         // take screenshot of player data
-        const element: WebElement = await driver.findElement(By.xpath('//div[@role="main"]'));
+        const element: WebElement = await driver
+            .findElement(By.xpath('//div[@role="main"]'));
+
+        await driver.manage().window().setRect({
+            width: 1249,
+            height: 1247
+        });
 
         let screenshot: string = await element.takeScreenshot();
         let buffer: Buffer = Buffer.from(screenshot, 'base64');
 
-        // edit deferred reply with screenshot
+        // edit deferred reply with player data screenshot
         await interaction.editReply({
             embeds: [new EmbedBuilder()
                 .setColor(0x30912E)
@@ -101,5 +98,8 @@ module.exports = {
                 name: `${user}.png`
             }]
         });
+
+        // close webdriver
+        await driver.quit();
     },
 };
