@@ -4,14 +4,14 @@ A Discord bot that Retrieves and displays player information and leaderboards fr
 
 Uses Discord's slash command feature to handle command input.
 
-I personally host this bot (invite link Soon™), but if you want to host it yourself, you can follow the instructions below.
+![image](https://user-images.githubusercontent.com/95893344/221094789-cc47df3b-da51-48df-98db-2eeefd1fb34f.png)
 
-### Installation
+## Installation
 
 1. Clone this repository to your local machine.
 2. Install dependencies by running `npm install`.
 
-### Usage
+## Usage
 
 1. Create a Discord bot and invite it to your server.
 2. Add your bot token to the `.env` file.
