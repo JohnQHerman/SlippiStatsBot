@@ -18,7 +18,7 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
 }
 
-// refresh all commands
+// refresh all commands (global)
 (async (): Promise<void> => {
     try {
         console.log(`refreshing ${commands.length} slash commands...`);
@@ -27,7 +27,7 @@ for (const file of commandFiles) {
         const data: any = await new REST({ version: '10' })
             .setToken(process.env.DISCORD_TOKEN!)
             .put(
-                Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID!, process.env.DISCORD_GUILD_ID!),
+                Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!),
                 { body: commands },
             );
 
