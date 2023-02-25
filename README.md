@@ -10,12 +10,13 @@ Uses Discord's slash command feature to handle command input.
 
 I host a public instance of this bot on my own hardware, which you can invite to your server by clicking [here](https://discord.com/api/oauth2/authorize?client_id=881000000000000000&permissions=2048&scope=applications.commands%20bot).
 
-If you'd like to host your own instance of the bot, follow the instructions below.
+If you'd like to host your own instance, follow the instructions below.
 
 1. Clone this repository to your local machine.
 2. Install dependencies by running `npm install`.
 3. Create a Discord bot and invite it to your server.
 4. Add your bot token to the `.env` file.
+5. Run `tsc .\deploy-commands.ts` followed by `node .\deploy-commands.js`.
 5. Start the bot by running `npm start`.
 
 ## Commands
