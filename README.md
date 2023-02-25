@@ -6,17 +6,17 @@ Uses Discord's slash command feature to handle command input.
 
 ![image](https://user-images.githubusercontent.com/95893344/221094789-cc47df3b-da51-48df-98db-2eeefd1fb34f.png)
 
-## Installation
+## Usage
+
+I host a public instance of this bot on my own hardware, which you can invite to your server by clicking [here](https://discord.com/api/oauth2/authorize?client_id=881000000000000000&permissions=2048&scope=applications.commands%20bot).
+
+If you'd like to host your own instance of the bot, follow the instructions below.
 
 1. Clone this repository to your local machine.
 2. Install dependencies by running `npm install`.
-
-## Usage
-
-1. Create a Discord bot and invite it to your server.
-2. Add your bot token to the `.env` file.
-3. Start the bot by running `npm start`.
-4. Use the `/player` command to retrieve player data, or use the `/leaderboard` command to retrieve the leaderboards for a given region.
+3. Create a Discord bot and invite it to your server.
+4. Add your bot token to the `.env` file.
+5. Start the bot by running `npm start`.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Options:
 
 ### `/leaderboard`
 
-Fetches the top players for a given region.
+Fetches the top players for a given region. (WIP, needs region buttons and pagination)
 
 Options:
 
@@ -40,7 +40,7 @@ Options:
 
 ## Credits
 
-This project was created by John Q. Herman [(sharkobarko)](https://slippi.gg/user/srko-117)
+This project was created by John Q. Herman [(sharkobarko)](https://twitter.com/sharkobarko)
 
 ## License
 
