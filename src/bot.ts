@@ -34,7 +34,7 @@ for (const file of commandFiles) {
     const filePath: string = path.join(commandsPath, file);
     const command: any = require(filePath);
 
-    // set command to client.commands collection if it has data and execute properties
+    // check if command has required data and execute properties, then add to collection
     if ('data' in command && 'execute' in command) {
         bot.commands.set(command.data.name, command);
     } else {
@@ -46,6 +46,8 @@ for (const file of commandFiles) {
 bot.on(Events.InteractionCreate, async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
+
+    console.log(`received /${interaction.commandName} command from ${interaction.user.username} (${interaction.user.tag})`);
 
     const command: any = bot.commands.get(interaction.commandName);
 
@@ -64,10 +66,8 @@ bot.on(Events.InteractionCreate, async interaction => {
 // on ready event
 bot.on(Events.ClientReady, () => {
 
-    // log tag and id
     console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')');
 
-    // set bot status
     bot.user?.setPresence({
         activities: [{ name: 'Ranked Matchmaking', type: ActivityType.Competing }],
         status: 'online'

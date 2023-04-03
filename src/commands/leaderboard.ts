@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { EmbedBuilder } from 'discord.js';
-import { Builder, By, WebElement } from 'selenium-webdriver';
+import puppeteer from 'puppeteer';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -16,62 +16,70 @@ module.exports = {
                 )
                 .setRequired(true))
         .addBooleanOption((option: any) =>
-            option.setName("hide-leaderboard")
-                .setDescription("Hide leaderboard from other users? | default: false")
+            option.setName("hide-reply")
+                .setDescription("Hide reply from other users? | default: false")
                 .setRequired(false)),
 
     // command execution
     async execute(interaction: any) {
 
         const hideStats: boolean = interaction.options
-            .getBoolean('hide-leaderboard') ?? false;
+            .getBoolean('hide-reply') ?? false;
 
         await interaction.deferReply({ ephemeral: hideStats });
 
-        // init selenium webdriver
-        const driver = new Builder()
-            .forBrowser('chrome')
-            .build();
-
-        // fetch leaderboard page
-        const region: string = interaction.options.getString('region');
-
         try {
-            await driver.get(`https://slippi.gg/leaderboards?region=${region}`);
+            // init puppeteer browser
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
+
+            // fetch leaderboard page
+            const region: string = interaction.options.getString('region');
+
+            await page.goto(`https://slippi.gg/leaderboards?region=${region}`);
+
+            // take screenshot of leaderboard
+            const element = await page.$('#root > div > div > div > div > div > div');
+
+            if (!element) {
+                console.log('element not found');
+                return;
+            }
+
+            await page.setViewport({
+                width: 1049,
+                height: 700
+            });
+
+            await page.evaluate(() => {
+                document.body.style.transform = 'scale(0.8)';
+                window.scrollTo(0, 125);
+            });
+
+            let screenshot: Buffer = await element.screenshot() as Buffer;
+
+            // edit deferred reply with leaderboard screenshot
+            await interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0x30912E)
+                    .setImage(`attachment://${region}.png`)],
+                files: [{
+                    attachment: screenshot,
+                    name: `${region}.png`
+                }]
+            });
+
+            // close browser
+            await browser.close();
+
+            // error handling
         } catch (error) {
-            console.log(error);
-            return;
+            console.error(error);
+            await interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setDescription("An error occurred while fetching the leaderboard.")]
+            });
         }
-
-        // take screenshot of leaderboard
-        await driver.sleep(1000);
-        const element: WebElement = await driver
-            .findElement(By.xpath('//*[@id="root"]/div/div/div/div/div/div'));
-
-        await driver.manage().window().setRect({
-            width: 1049,
-            height: 700
-        });
-
-        await driver.executeScript('document.body.style.zoom="80%"');
-        await driver.executeScript('window.scrollTo(0, 125)');
-
-        let screenshot: string = await element.takeScreenshot();
-        let buffer: Buffer = Buffer.from(screenshot, 'base64');
-
-        // edit deferred reply with leaderboard screenshot
-        await interaction.editReply({
-            embeds: [new EmbedBuilder()
-                .setColor(0x30912E)
-                .setImage(`attachment://${region}.png`)],
-            files: [{
-                attachment: buffer,
-                name: `${region}.png`
-            }]
-        });
-
-        // close webdriver
-        await driver.quit();
-
     },
 };

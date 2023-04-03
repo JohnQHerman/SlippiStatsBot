@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
-import { Builder, By, WebElement } from 'selenium-webdriver';
+import puppeteer from 'puppeteer';
 
 // export command
 module.exports = {
@@ -13,93 +13,106 @@ module.exports = {
                 .setMaxLength(8) // 3-8 characters
                 .setRequired(true))
         .addBooleanOption((option) =>
-            option.setName("hide-stats")
-                .setDescription("Hide stats from other users? | default: false")
+            option.setName("hide-reply")
+                .setDescription("Hide reply from other users? | default: false")
                 .setRequired(false)),
 
     // command execution
     async execute(interaction: any) {
 
-        const hideStats: boolean = interaction.options
-            .getBoolean('hide-stats') ?? false;
-
-        await interaction.deferReply({ ephemeral: hideStats });
-
-        // validate connect code
-        const connectCode: string = interaction.options.getString('code');
-
-        if (!connectCode.includes('#')
-            || !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
-            return interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor(0xFF0000)
-                    .setDescription("Invalid connect code.")]
-            });
-        }
-
-        // init selenium webdriver
-        const driver = new Builder()
-            .forBrowser('chrome')
-            .build();
-
-        // fetch player page
-        let user: string;
-
         try {
-            user = connectCode.toLowerCase().replace('#', '-');
-            await driver.get(`https://slippi.gg/user/${user}`);
-        } catch (error) {
-            console.log(error);
-            return;
-        }
+            const hideStats: boolean = interaction.options
+                .getBoolean('hide-reply') ?? false;
 
-        // wait for player data & images to load
-        let pageSource: string = await driver.getPageSource();
+            await interaction.deferReply({ ephemeral: hideStats });
 
-        while (pageSource.includes("Loading") && !pageSource.includes("Player not found")) {
+            // validate connect code
+            const connectCode: string = interaction.options.getString('code');
+
+            if (!connectCode.includes('#')
+                || !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
+                return interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(0xFF0000)
+                        .setDescription("Invalid connect code.")]
+                });
+            }
+
+            // init puppeteer browser
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
+
+            // fetch player page
+            let user: string;
+
             try {
-                pageSource = await driver.getPageSource();
-            } catch (error: any) {
+                user = connectCode.toLowerCase().replace('#', '-');
+                await page.goto(`https://slippi.gg/user/${user}`);
+            } catch (error) {
                 console.log(error);
                 return;
             }
-        }
 
-        // check if player exists
-        await driver.sleep(1000);
-        if (pageSource.includes("Player not found")) {
-            await driver.quit();
-            return interaction.editReply({
+            // wait for player data & images to load
+            let pageSource: string = await page.content();
+
+            while (pageSource.includes("Loading") && !pageSource.includes("Player not found")) {
+                try {
+                    pageSource = await page.content();
+                } catch (error: any) {
+                    console.log(error);
+                    return;
+                }
+            }
+
+            // check if player exists
+            await new Promise(r => setTimeout(r, 1000));
+            if (pageSource.includes("Player not found")) {
+                await browser.close();
+                return interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(0xFF0000)
+                        .setDescription("Player **" + connectCode.toUpperCase() + "** not found.")]
+                });
+            }
+
+            // take screenshot of player data
+            const element = await page.$('div[role="main"]');
+
+            if (!element) {
+                console.log('element not found');
+                return;
+            }
+
+            await page.setViewport({
+                width: 1249,
+                height: 1247
+            });
+
+            let screenshot: Buffer = await element.screenshot() as Buffer;
+
+            // edit deferred reply with player data screenshot
+            await interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0x30912E)
+                    .setImage(`attachment://${user}.png`)],
+                files: [{
+                    attachment: screenshot,
+                    name: `${user}.png`
+                }]
+            });
+
+            // close browser
+            await browser.close();
+
+            // error handling
+        } catch (error) {
+            console.error(error);
+            await interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setColor(0xFF0000)
-                    .setDescription("Player **" + connectCode.toUpperCase() + "** not found.")]
+                    .setDescription("An error occurred while fetching player data.")]
             });
         }
-
-        // take screenshot of player data
-        const element: WebElement = await driver
-            .findElement(By.xpath('//div[@role="main"]'));
-
-        await driver.manage().window().setRect({
-            width: 1249,
-            height: 1247
-        });
-
-        let screenshot: string = await element.takeScreenshot();
-        let buffer: Buffer = Buffer.from(screenshot, 'base64');
-
-        // edit deferred reply with player data screenshot
-        await interaction.editReply({
-            embeds: [new EmbedBuilder()
-                .setColor(0x30912E)
-                .setImage(`attachment://${user}.png`)],
-            files: [{
-                attachment: buffer,
-                name: `${user}.png`
-            }]
-        });
-
-        // close webdriver
-        await driver.quit();
     },
 };
