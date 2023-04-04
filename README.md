@@ -18,7 +18,8 @@ For those who prefer hosting their own instance of the bot, follow these instruc
 2. Run `npm install` to install the required dependencies.
 3. Create a Discord bot and invite it to your server.
 4. Add your bot token to the `.env` file as `DISCORD_TOKEN`.
-5. Launch the bot by running `npm start`.
+5. Run `tsc ./deploy-commands.ts && node ./deploy-commands.js` to deploy the bot's slash commands.
+6. Launch the bot by running `npm start`.
 
 \_
 
