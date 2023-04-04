@@ -2,11 +2,9 @@
 
 A convenient tool for retrieving and displaying player information and leaderboards from Slippi.gg directly in your Discord server.
 
-This bot utilizes Discord's slash command feature for command input and Puppeteer for data scraping from Slippi.gg.
+This bot utilizes Discord.js's slash command feature for command input and Puppeteer to scrape Slippi.gg.
 
 ![image](https://user-images.githubusercontent.com/95893344/221094789-cc47df3b-da51-48df-98db-2eeefd1fb34f.png)
-
-\_
 
 ## 🚀 Usage
 
@@ -20,8 +18,6 @@ For those who prefer hosting their own instance of the bot, follow these instruc
 4. Add your bot token to the `.env` file as `DISCORD_TOKEN`.
 5. Run `tsc ./deploy-commands.ts && node ./deploy-commands.js` to deploy the bot's slash commands.
 6. Launch the bot by running `npm start`.
-
-\_
 
 ## 🎮 Commands
 
@@ -42,8 +38,6 @@ Options:
 
 - `region`: The region for which the leaderboard should be fetched (North America, Europe, Other).
 - `hide-reply`: Optional. Conceals the leaderboard from other users. Default: `false`.
-
-\_
 
 ## 🙌 Credits
 
