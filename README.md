@@ -1,6 +1,6 @@
 # 🐸 Slippi Stats Discord Bot
 
-A convenient tool for retrieving and displaying player information and leaderboards from Slippi.gg directly in your Discord server.
+A convenient tool for retrieving and displaying player info and leaderboards from Slippi.gg directly in your Discord server.
 
 This bot utilizes Discord.js's slash command feature for command input and Puppeteer to scrape Slippi.gg.
 
