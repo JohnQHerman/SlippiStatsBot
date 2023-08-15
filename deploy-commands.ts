@@ -1,24 +1,21 @@
 import { REST, Routes } from 'discord.js';
-const fs = require('fs');
+import * as fs from 'fs';
 require('dotenv').config();
 
-// array to hold commands
+// get all command files
 const commands: Array<any> = [];
-
-// grab command files
 const commandsPath: string = 'dist/commands';
+const commandFiles: string[] = fs
+    .readdirSync(commandsPath)
+    .filter((file: string): boolean => file.endsWith('.js'));
 
-const commandFiles: string[] = fs.readdirSync(commandsPath)
-    .filter((file: string): boolean => file
-        .endsWith('.js'));
-
-// grab SlashCommandBuilder#toJSON() output of each command
+// get SlashCommandBuilder#toJSON() output of each command
 for (const file of commandFiles) {
     const command = require(`./${commandsPath}/${file}`);
     commands.push(command.data.toJSON());
 }
 
-// refresh all commands (global)
+// refresh all commands
 (async (): Promise<void> => {
     try {
         console.log(`refreshing ${commands.length} slash commands...`);
@@ -26,16 +23,15 @@ for (const file of commandFiles) {
         // register commands with discord
         const data: any = await new REST({ version: '10' })
             .setToken(process.env.DISCORD_TOKEN!)
-            .put(
-                Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!),
-                { body: commands },
-            );
+            .put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), {
+                body: commands,
+            });
 
-        console.log(`refreshed ${data.length} slash commands (${commands.length > 0 ? commands
-            .map((command: any) => command.name)
-            .sort((a: string, b: string) => b.localeCompare(a))
-            .join(', ') : 'none'})`);
-
+        // log number of commands refreshed
+        console.log(
+            `refreshed ${data.length} slash command${data.length === 1 ? '' : 's'
+            }.`
+        );
     } catch (error) {
         console.error(error);
     }

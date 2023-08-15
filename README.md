@@ -1,6 +1,6 @@
 # 🐸 Slippi Stats Discord Bot
 
-A convenient tool for retrieving and displaying player info and leaderboards from Slippi.gg in your Discord server.
+A convenient tool for retrieving and displaying player info from Slippi.gg in your Discord server.
 
 This bot utilizes Discord.js's slash command feature for command input and Puppeteer to scrape Slippi.gg.
 
@@ -29,15 +29,6 @@ Options:
 
 - `code`: The Slippi connect code for the player.
 - `hide-reply`: Optional. Conceals stats from other users. Default: `false`.
-
-### `/leaderboard`
-
-Displays the top players in a specified region. (WIP: Region buttons and pagination to be added)
-
-Options:
-
-- `region`: The region for which the leaderboard should be fetched (North America, Europe, Other).
-- `hide-reply`: Optional. Conceals the leaderboard from other users. Default: `false`.
 
 ## 🙌 Credits
 
