@@ -1,5 +1,3 @@
 .env
 dist/
-*.json
-*.log
 node_modules/
