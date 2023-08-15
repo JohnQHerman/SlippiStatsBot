@@ -1,118 +1,152 @@
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
-import puppeteer from 'puppeteer';
+import { Factory, Options, Pool, createPool } from 'generic-pool';
+import puppeteer, { Browser, Page } from 'puppeteer';
+import UserAgent from 'user-agents';
 
-// export command
-module.exports = {
-    data: new SlashCommandBuilder()
+// types for discord.js slash commands
+interface Interaction {
+    options: {
+        getString(optionName: string): string;
+        getBoolean(optionName: string): boolean | null;
+    };
+
+    deferReply(options: { ephemeral: boolean }): Promise<void>;
+    editReply(options: EditReplyOptions): Promise<void>;
+}
+
+interface EditReplyOptions {
+    embeds?: EmbedBuilder[];
+    files?: { attachment: Buffer; name: string }[];
+}
+
+// constants
+const PLAYER_NOT_FOUND_TEXT = "Player not found";
+const VIEWPORT_SIZE = { width: 1249, height: 1247 };
+const userAgent = new UserAgent({ deviceCategory: 'desktop' });
+const HEADLESS_BROWSER_CONFIG = {
+    headless: true,
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        `--user-agent=${userAgent.toString()}`
+    ],
+    timeout: 60 * 1000 // 60 seconds
+};
+
+// browser pool
+const browserFactory: Factory<Browser> = {
+    create: (): Promise<Browser> => puppeteer.launch(HEADLESS_BROWSER_CONFIG),
+    destroy: (browser: Browser): Promise<void> => browser.close()
+};
+
+const poolOptions: Options = { min: 2, max: 10 };
+const browserPool: Pool<Browser> = createPool<Browser>(browserFactory, poolOptions);
+
+// command class
+class PlayerCommand {
+    data = new SlashCommandBuilder()
         .setName("player")
         .setDescription("Fetches player data for a given connect code.")
-        .addStringOption((option) =>
+        .addStringOption(option =>
             option.setName("code")
                 .setDescription("Slippi connect code")
                 .setMinLength(3)
                 .setMaxLength(8) // 3-8 characters
                 .setRequired(true))
-        .addBooleanOption((option) =>
+        .addBooleanOption(option =>
             option.setName("hide-reply")
-                .setDescription("Hide reply from other users? | default: false")
-                .setRequired(false)),
+                .setDescription("Hide bot reply from other users? | default: false")
+                .setRequired(false));
 
-    // command execution
-    async execute(interaction: any) {
-
+    // command handler
+    async execute(interaction: Interaction) {
         try {
-            const hideStats: boolean = interaction.options
-                .getBoolean('hide-reply') ?? false;
+            // defer reply and handle hide-reply option
+            const hideReply: boolean = interaction.options.getBoolean('hide-reply') ?? false;
+            await interaction.deferReply({ ephemeral: hideReply });
 
-            await interaction.deferReply({ ephemeral: hideStats });
-
-            // validate connect code
+            // handle invalid connect codes
             const connectCode: string = interaction.options.getString('code');
-
-            if (!connectCode.includes('#')
-                || !/^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1))) {
-                return interaction.editReply({
-                    embeds: [new EmbedBuilder()
-                        .setColor(0xFF0000)
-                        .setDescription("Invalid connect code.")]
-                });
+            if (!this.isValidConnectCode(connectCode)) {
+                return this.replyWithError(interaction, "Invalid connect code.");
             }
 
-            // init puppeteer browser
-            const browser = await puppeteer.launch({ headless: true });
-            const page = await browser.newPage();
-
-            // fetch player page
-            let user: string;
+            // fetch player page and handle invalid players
+            const user = this.formatUser(connectCode);
+            const browser: Browser = await browserPool.acquire();
 
             try {
-                user = connectCode.toLowerCase().replace('#', '-');
-                await page.goto(`https://slippi.gg/user/${user}`);
-            } catch (error) {
-                console.log(error);
-                return;
-            }
+                const { page, pageSource } = await this.fetchPlayerPage(user, browser);
 
-            // wait for player data & images to load
-            let pageSource: string = await page.content();
-
-            while (pageSource.includes("Loading") && !pageSource.includes("Player not found")) {
-                try {
-                    pageSource = await page.content();
-                } catch (error: any) {
-                    console.log(error);
-                    return;
+                if (this.playerNotFound(pageSource)) {
+                    await page.close();
+                    return this.replyWithError(interaction, `Player **${connectCode.toUpperCase()}** not found.`);
                 }
+
+                // take screenshot and reply with player data
+                const screenshot: Buffer = await this.takeScreenshot(page);
+                await this.replyWithPlayerData(interaction, user, screenshot);
+                await page.close();
+
+            } finally {
+                // release browser back to pool
+                await browserPool.release(browser);
             }
 
-            // check if player exists
-            await new Promise(r => setTimeout(r, 1000));
-            if (pageSource.includes("Player not found")) {
-                await browser.close();
-                return interaction.editReply({
-                    embeds: [new EmbedBuilder()
-                        .setColor(0xFF0000)
-                        .setDescription("Player **" + connectCode.toUpperCase() + "** not found.")]
-                });
-            }
-
-            // take screenshot of player data
-            const element = await page.$('div[role="main"]');
-
-            if (!element) {
-                console.log('element not found');
-                return;
-            }
-
-            await page.setViewport({
-                width: 1249,
-                height: 1247
-            });
-
-            let screenshot: Buffer = await element.screenshot() as Buffer;
-
-            // edit deferred reply with player data screenshot
-            await interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor(0x30912E)
-                    .setImage(`attachment://${user}.png`)],
-                files: [{
-                    attachment: screenshot,
-                    name: `${user}.png`
-                }]
-            });
-
-            // close browser
-            await browser.close();
-
-            // error handling
-        } catch (error) {
+        } catch (error) { // handle errors
             console.error(error);
-            await interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor(0xFF0000)
-                    .setDescription("An error occurred while fetching player data.")]
-            });
+            await this.replyWithError(interaction, "An error occurred while fetching player data.");
         }
-    },
-};
+    }
+
+    // connect code helpers
+    isValidConnectCode(connectCode: string): boolean {
+        return connectCode.includes('#') && /^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1));
+    }
+
+    formatUser(connectCode: string): string {
+        return connectCode.toLowerCase().replace('#', '-');
+    }
+
+    // browser helpers
+    async fetchPlayerPage(user: string, browser: Browser): Promise<{ page: Page, pageSource: string }> {
+        const page = await browser.newPage();
+        await page.setViewport(VIEWPORT_SIZE);
+        await page.goto(`https://slippi.gg/user/${user}`, { waitUntil: 'networkidle0' });
+        await page.waitForSelector('body');
+
+        const pageSource = await page.content();
+        return { page, pageSource };
+    }
+
+    playerNotFound(pageSource: string): boolean {
+        return pageSource.includes(PLAYER_NOT_FOUND_TEXT);
+    }
+
+    async takeScreenshot(page: Page): Promise<Buffer> {
+        const element = await page.$('div[role="main"]');
+
+        if (!element) {
+            throw new Error("Element not found.");
+        }
+
+        const screenshot: Buffer = await element.screenshot() as Buffer;
+        return screenshot;
+    }
+
+    // reply helpers
+    async replyWithError(interaction: Interaction, message: string) {
+        await interaction.editReply({
+            embeds: [new EmbedBuilder().setColor(0xFF0000).setDescription(message)],
+        });
+    }
+
+    async replyWithPlayerData(interaction: Interaction, user: string, screenshot: Buffer) {
+        await interaction.editReply({
+            embeds: [new EmbedBuilder().setColor(0x30912E).setImage(`attachment://${user}.png`)],
+            files: [{ attachment: screenshot, name: `${user}.png` }],
+        });
+    }
+}
+
+export default PlayerCommand;
