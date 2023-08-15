@@ -1,38 +1,59 @@
 import { EmbedBuilder } from '@discordjs/builders';
-import Discord, { ActivityType, Collection, Events, GatewayIntentBits } from 'discord.js';
+import Discord, {
+    ActivityType,
+    Collection,
+    CommandInteraction,
+    Events,
+    GatewayIntentBits,
+} from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
 require('dotenv').config();
 
 // extend Client class to add commands property
-class bruhClient extends Discord.Client {
-    commands: Discord.Collection<string, any>;
+class BruhClient extends Discord.Client {
+    commands: Collection<string, Command>;
+
     constructor(options: Discord.ClientOptions) {
         super(options);
         this.commands = new Collection();
     }
 }
 
-// new extended client instance
-const bot: bruhClient = new bruhClient({
+// types for command object
+interface Command {
+    data: {
+        name: string;
+        description: string;
+        options?: Array<{
+            name: string;
+            description: string;
+            type: number;
+            required: boolean
+        }>;
+    };
+    execute: (interaction: CommandInteraction) => Promise<void>;
+}
+
+// new extended client instance (bruh)
+const bot: BruhClient = new BruhClient({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
     ],
 });
 
 // read commands folder and add commands to client.commands collection
 const commandsPath: string = path.join(__dirname, 'commands');
-const commandFiles: string[] = fs.readdirSync(commandsPath)
-    .filter((file: string) => file
-        .endsWith('.js'));
+const commandFiles: string[] = fs.readdirSync(commandsPath).filter((file: string) => file.endsWith('.js'));
 
 // loop through command files
 for (const file of commandFiles) {
     const filePath: string = path.join(commandsPath, file);
-    const command: any = require(filePath);
+    const CommandClass = require(filePath).default;
+    const command: Command = new CommandClass();
 
     // check if command has required data and execute properties, then add to collection
     if ('data' in command && 'execute' in command) {
@@ -42,37 +63,38 @@ for (const file of commandFiles) {
     }
 }
 
-// handler for slash commands/interactions
-bot.on(Events.InteractionCreate, async interaction => {
-
+// handler for interactionCreate event
+bot.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
+    // if (interaction.user.id !== '164487064979505153') return; // debug
 
-    console.log(`received /${interaction.commandName} command from ${interaction.user.username} (${interaction.user.tag})`);
+    console.log(
+        `received /${interaction.commandName} command from ${interaction.user.tag} in ${interaction.guild?.name}`,
+    );
 
-    const command: any = bot.commands.get(interaction.commandName);
+    // get command from collection and execute
+    const command: Command | undefined = bot.commands.get(interaction.commandName);
 
     try {
-        await command.execute(interaction);
+        await command?.execute(interaction);
+        console.log(`reply sent to ${interaction.user.tag} in ${interaction.guild?.name}`);
     } catch (error) {
         console.error(error);
         await interaction.reply({
-            embeds: [new EmbedBuilder()
-                .setColor(0xFF0000)
-                .setDescription('Error executing command.')], ephemeral: true
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setDescription('Error executing command.'),
+            ],
+            ephemeral: true,
         });
     }
 });
 
 // on ready event
 bot.on(Events.ClientReady, () => {
-
-    console.log('logged in as ' + bot.user?.tag + ' (' + bot.user?.id + ')');
-
-    bot.user?.setPresence({
-        activities: [{ name: 'Ranked Matchmaking', type: ActivityType.Competing }],
-        status: 'online'
-    });
-
+    console.log(`logged in as ${bot.user?.tag} (${bot.user?.id})`);
+    bot.user?.setActivity("Ranked Matchmaking", { type: ActivityType.Competing });
 });
 
 // log in to discord
