@@ -13,7 +13,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^18.11.18",
-    "@types/user-agents": "^1.0.2",
     "prettier": "^3.0.2"
   },
   "dependencies": {
@@ -26,8 +25,7 @@
     "npm": "^9.8.1",
     "puppeteer": "^19.8.3",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6",
-    "user-agents": "^1.0.1444"
+    "typescript": "^5.1.6"
   },
   "engines": {
     "node": "19.6.1",
