@@ -96,5 +96,10 @@ bot.on(Events.ClientReady, () => {
     bot.user?.setActivity("Ranked Matchmaking", { type: ActivityType.Competing });
 });
 
+// global unhandled promise rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // log in to discord
 bot.login(process.env.DISCORD_TOKEN);
