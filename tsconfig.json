@@ -18,5 +18,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "declarations.d.ts"],
+  "include": ["src/**/*"],
 }
