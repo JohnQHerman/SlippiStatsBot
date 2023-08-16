@@ -9,7 +9,6 @@ import Discord, {
 import fs from 'node:fs';
 import path from 'node:path';
 
-require('./server'); // keep server alive on heroku
 require('dotenv').config();
 
 // extend Client class to add commands property
