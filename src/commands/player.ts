@@ -22,7 +22,7 @@ interface EditReplyOptions {
 const PLAYER_NOT_FOUND_TEXT = "Player not found";
 const VIEWPORT_SIZE = { width: 1249, height: 1247 };
 const HEADLESS_BROWSER_CONFIG = {
-    headless: true,
+    headless: "new" as any,
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
