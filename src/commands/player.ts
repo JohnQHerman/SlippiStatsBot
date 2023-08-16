@@ -1,7 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { Factory, Options, Pool, createPool } from 'generic-pool';
 import puppeteer, { Browser, Page } from 'puppeteer';
-import UserAgent from 'user-agents';
 
 // types for discord.js slash commands
 interface Interaction {
@@ -22,13 +21,11 @@ interface EditReplyOptions {
 // constants
 const PLAYER_NOT_FOUND_TEXT = "Player not found";
 const VIEWPORT_SIZE = { width: 1249, height: 1247 };
-const userAgent = new UserAgent({ deviceCategory: 'desktop' });
 const HEADLESS_BROWSER_CONFIG = {
     headless: true,
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        `--user-agent=${userAgent.toString()}`
     ],
     timeout: 60 * 1000 // 60 seconds
 };
