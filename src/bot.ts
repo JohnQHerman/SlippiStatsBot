@@ -66,7 +66,6 @@ for (const file of commandFiles) {
 // handler for interactionCreate event
 bot.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    // if (interaction.user.id !== '164487064979505153') return; // debug
 
     console.log(
         `received /${interaction.commandName} command from ${interaction.user.tag} in ${interaction.guild?.name}`,
