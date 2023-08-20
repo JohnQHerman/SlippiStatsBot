@@ -32,4 +32,4 @@ Options:
 
 ## 🙌 Credits
 
-This project was developed by John Q. Herman [(sharkobarko)](https://twitter.com/sharkobarko) under the [MIT](https://choosealicense.com/licenses/mit/) license.
+This project was developed by John Q. Herman under the [MIT](https://choosealicense.com/licenses/mit/) license.
