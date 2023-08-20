@@ -11,16 +11,6 @@ import path from 'node:path';
 
 require('dotenv').config();
 
-// extend Client class to add commands property
-class BruhClient extends Discord.Client {
-    commands: Collection<string, Command>;
-
-    constructor(options: Discord.ClientOptions) {
-        super(options);
-        this.commands = new Collection();
-    }
-}
-
 // types for command object
 interface Command {
     data: {
@@ -36,7 +26,17 @@ interface Command {
     execute: (interaction: CommandInteraction) => Promise<void>;
 }
 
-// new extended client instance (bruh)
+// extend Client class to add commands property (bruh)
+class BruhClient extends Discord.Client {
+    commands: Collection<string, Command>;
+
+    constructor(options: Discord.ClientOptions) {
+        super(options);
+        this.commands = new Collection();
+    }
+}
+
+// new extended client instance
 const bot: BruhClient = new BruhClient({
     intents: [
         GatewayIntentBits.Guilds,
@@ -47,7 +47,9 @@ const bot: BruhClient = new BruhClient({
 
 // read commands folder and add commands to client.commands collection
 const commandsPath: string = path.join(__dirname, 'commands');
-const commandFiles: string[] = fs.readdirSync(commandsPath).filter((file: string) => file.endsWith('.js'));
+const commandFiles: string[] = fs
+    .readdirSync(commandsPath)
+    .filter((file: string) => file.endsWith('.js'));
 
 // loop through command files
 for (const file of commandFiles) {
