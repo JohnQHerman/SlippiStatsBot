@@ -3,13 +3,13 @@ import * as fs from 'fs';
 require('dotenv').config();
 
 // get all command files
-const commands: Array<any> = [];
 const commandsPath: string = 'dist/commands';
 const commandFiles: string[] = fs
     .readdirSync(commandsPath)
     .filter((file: string): boolean => file.endsWith('.js'));
 
 // get SlashCommandBuilder#toJSON() output of each command
+const commands: Array<any> = [];
 for (const file of commandFiles) {
     const command = require(`./${commandsPath}/${file}`);
     commands.push(command.data.toJSON());
