@@ -11,7 +11,7 @@ import path from 'node:path';
 
 require('dotenv').config();
 
-// types for command object
+// interface for command object
 interface Command {
     data: {
         name: string;
@@ -95,10 +95,10 @@ bot.on(Events.InteractionCreate, async (interaction) => {
 // on ready event
 bot.on(Events.ClientReady, () => {
     console.log(`logged in as ${bot.user?.tag} (${bot.user?.id})`);
-    bot.user?.setActivity("Ranked Matchmaking", { type: ActivityType.Competing });
+    bot.user?.setActivity("Slippi Ranked", { type: ActivityType.Playing });
 });
 
-// global unhandled promise rejection handler
+// global error handler
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
