@@ -2,7 +2,7 @@ import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { Factory, Options, Pool, createPool } from 'generic-pool';
 import puppeteer, { Browser, Page } from 'puppeteer';
 
-// types for discord.js slash commands
+// types for slash command
 interface Interaction {
     options: {
         getString(optionName: string): string;
@@ -98,7 +98,9 @@ class PlayerCommand {
 
     // connect code helpers
     isValidConnectCode(connectCode: string): boolean {
-        return connectCode.includes('#') && /^\d+$/.test(connectCode.slice(connectCode.indexOf('#') + 1));
+        return connectCode.includes('#') &&
+            /^\d+$/.test(connectCode
+                .slice(connectCode.indexOf('#') + 1));
     }
 
     formatUser(connectCode: string): string {
