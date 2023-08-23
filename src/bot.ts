@@ -78,7 +78,7 @@ bot.on(Events.InteractionCreate, async (interaction) => {
 
     try {
         await command?.execute(interaction);
-        console.log(`reply sent to ${interaction.user.tag} in ${interaction.guild?.name}`);
+        console.log(`${interaction.ephemeral ? 'ephemeral ' : ''}reply sent to ${interaction.user.tag} in ${interaction.guild?.name}`);
     } catch (error) {
         console.error(error);
         await interaction.reply({
