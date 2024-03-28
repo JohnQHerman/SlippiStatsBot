@@ -8,9 +8,7 @@ This bot utilizes Discord.js's slash command feature for command input and Puppe
 
 ## 🚀 Usage
 
-A public instance of this bot, hosted on my own hardware, can be invited to your server by clicking [here](https://discord.com/api/oauth2/authorize?client_id=881000000000000000&permissions=2048&scope=applications.commands%20bot).
-
-For those who prefer hosting their own instance of the bot, follow these instructions:
+I've discontinued the bot's public instance. For DIY hosting:
 
 1. Clone this repository to your local machine.
 2. Run `npm install` to install the required dependencies.
